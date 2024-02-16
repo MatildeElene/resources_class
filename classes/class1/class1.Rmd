@@ -11,14 +11,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 # Setting my root directory to where I have my /data folder etc. (easier for me, but personalise to your own way of working)
-knitr::opts_knit$set(root.dir = "/Users/pernillebrams/Desktop/AARHUS_UNIVERSITY/instructor_2024/methods-2")
+knitr::opts_knit$set(root.dir = "/Users/matildeelene/Documents/GitHub/resources_class/classes")
 
 ```
 
 ### Setup
 ```{r}
 # Make sure this guy is installed/updated (if you've alreadygot rstanarm installed, you just need to load it in using either library() or p_load() as below)
-install.packages("rstanarm")
 library(rstanarm)
 
 # Load the rest
@@ -72,7 +71,7 @@ ggplot(hibbs, aes(x = growth, y = vote)) +
     plot.title = element_text(hjust = 0.5),  # Center the title
     plot.subtitle = element_text(hjust = 0.5)  # Center the subtitle
   ) +
-  geom_smooth(method = "lm", se = FALSE, color = "blue")  # Add a linear regression line
+  geom_smooth(method = "lm", se = FALSE, color = "pink")  # Add a linear regression line
 
 ```
 
@@ -80,6 +79,7 @@ ggplot(hibbs, aes(x = growth, y = vote)) +
 These first exercises are about learning what simulating data is for.
 
 ## Ex. 0.a): In 1-2 sentences (discuss w group or reflect on your own): What does it mean to simulate data?
+Creating false data - also known as "sketching" 
 
 ## Ex. 0.b): Specify some amount of data points (n), some mean and some sd, and use rnorm() to simulate this amount of data points based off of the mean and sd you've set. 
 ```{r}
@@ -88,13 +88,32 @@ set.seed(1998) # setting a seed (in the best year ever??) - this way, even thoug
 # rnorm() works like: my_simulated_data <- rnorm(n, mean, sd) - now you go!
 
 # your code here
+simulate_data <- rnorm(n=100,mean=23,sd=17)
+df<- data.frame(simulate_data)
+df <- df %>%
+  mutate(ordinal_number = row_number())
+
+df %>% ggplot(aes(x=ordinal_number, y=simulate_data,fill="pink")) +
+  geom_histogram(stat = 'summary',
+           fun = mean,
+           width = 0.5) +
+  geom_errorbar(stat = 'summary',
+                fun.data = mean_se,
+                width = 0.2)+
+  labs(x = "Ordinals", y = "Some data that we like",title = "Oh we love random stuff", subtitle = "It's so fun" + theme_minimal())
+
+mean(df$simulate_data)
+sd(df$simulate_data)
+
 ```
 
 ## Ex. 0.c) Talk with your group and note in 1-2 sentences: What do we know of the data drawn from the rnorm()? 
+sd, mean and number of data points 
 
 ## Ex. 0.d) Data are worth 10000% more if visualised, so let's visualise. Using ggplot, make a histogram visualising the data you simulated.
 
 ## Ex. 0.e) Calculate the empirical mean and empirical sd (just fancy words for "calculate the mean and sd of the simulated data") - are they different from the ones you've set? and why might that be?
+- Yes they are different: both are higher than specified. Maybe the sample size is too small? 
 
 ## Exercises from ROS
 ### Ex. 1.2
@@ -102,9 +121,59 @@ Sketching a regression model and data: Figure 1.1b shows data corresponding to t
 ("Sketch" or "graph"= means simulate i.e. skething data means make some data yourself :) )
 
 #### Ex. 1.2.a) Sketch hypothetical data with the same range of x but corresponding to the line y = 30 + 10x with residual standard deviation 3.9.
-* If you're not sure how to approach this exercise, try and go by the piecemeal hint-intruction in the bottom of this doc :)
+* We're given a linear regression equation that specifies what y should be, and we're told what the x should be from and to in the question and the info from 1.2). Here's 8 smaller steps on how to solve it, step by step: 
+
+#### 1) First, define the regression model parameters (intercept, slope, error) (hint: just make variables called 'intercept' and so on and define the number)
+
+#### 2) Generate X values in the specified range using seq()
+
+#### 3) Calculate y values based on the given regression and your newly created x-values without the error term, which gives you the y get the perfect fit line
+
+#### 4) Add random error to the line we fit above: we can introduce variability by adding some normally distributed random errors to the y values. This can be done using rnorm() as in the 0-exercises, with mean 0 and standard deviation equal to the residual standard deviation (3.9) for instance.
+
+#### 5) Prepare data for plotting: get the x-values and y-values in a dataframe to prepare for plotting w. ggplot
+
+#### 6) Now, plot to check it out
+
+#### 7) Optional: Fit and review a regression model: As an additional step, you can fit a linear regression model to the generated data using stan_glm() or any other fitting function to see how closely the estimated parameters match the ones used to generate the data. 
+```{r}
+### Ex. 1.2a) w stepwise-instruction
+
+# 1) defining the regression model parameters
+intercept <- 30.0
+slope <- 10.0
+residual_sd <- 3.9 #standard deviation
+
+# 2) Generating X values in the specified range: 0-4%
+x_values <- seq(from=0, to=4)
+
+# 3) Calculate y values based on the given regression and your newly created x-values without the error term, which gives you the y get the perfect fit line
+y_values <- intercept + slope * x_values
+print(y_values)
+
+# 4) Adding random error to the line we fit above: introducing variability
+error <- rnorm(length(x_values), mean = 0, sd = residual_sd)
+simulated_y_with_error <- y_values + error
+
+# 5) Prepare data for plotting: get the x-values and y-values in a dataframe to prepare for plotting w. ggplot
+xandy <- data.frame(x=x_values,y=simulated_y_with_error)
+
+# 6) Now, plot to check it out
+plot(x_values, y_values, type = "l", col = "blue", lwd = 2,
+     xlab = "X", ylab = "Y", main = "Hypothetical Data Sketch with Error")
+
+points(x_values, simulated_y_with_error, col = "red", pch = 19)
+
+legend("topleft", legend = c("Regression Line", "Simulated Data with Error"),
+       col = c("blue", "red"), lty = c(1, NA), pch = c(NA, 19), lwd = c(2, NA))
+```
 
 #### Ex. 1.2.b) Sketch hypothetical data with the same range of x but corresponding to the line y = 30 + 10x with residual standard deviation 10.
+```{r}
+
+```
+
+
 
 ### Ex. 1.5 Goals of regression: Give examples of applied statistics problems of interest to you in which the goals are:
 #### (a) Forecasting/classification
